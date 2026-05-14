@@ -58,4 +58,19 @@ describe('DataResourcePage', () => {
     });
     expect(detailsButton).toHaveFocus();
   });
+
+  test('uses explicit endpoint when provided', async () => {
+    render(
+      <DataResourcePage
+        title="Activities"
+        resourcePath="activities"
+        endpoint="https://demo-8000.app.github.dev/api/activities/"
+        columns={columns}
+      />
+    );
+
+    await screen.findByText('Running');
+
+    expect(global.fetch).toHaveBeenCalledWith('https://demo-8000.app.github.dev/api/activities/');
+  });
 });

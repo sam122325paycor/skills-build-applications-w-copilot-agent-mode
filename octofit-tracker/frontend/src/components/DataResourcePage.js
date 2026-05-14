@@ -74,7 +74,7 @@ const getDetailEntries = (record, columns) => {
 
 // columns prop: array of { key, label, render? }
 // If not provided, auto-discovers up to 6 columns from the data.
-const DataResourcePage = ({ title, resourcePath, columns: columnsProp }) => {
+const DataResourcePage = ({ title, resourcePath, endpoint: endpointProp, columns: columnsProp }) => {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -84,7 +84,7 @@ const DataResourcePage = ({ title, resourcePath, columns: columnsProp }) => {
   const closeButtonRef = useRef(null);
   const modalTitleId = `${resourcePath}-details-title`;
 
-  const endpoint = useMemo(() => getEndpoint(resourcePath), [resourcePath]);
+  const endpoint = useMemo(() => endpointProp || getEndpoint(resourcePath), [endpointProp, resourcePath]);
 
   useEffect(() => {
     setLoading(true);
