@@ -10,6 +10,31 @@ class UserTests(APITestCase):
         user = User.objects.create_user(username='testuser', password='testpass')
         self.assertEqual(User.objects.count(), 1)
 
+    def test_user_api_includes_display_name(self):
+        User.objects.create_user(
+            username='testuser',
+            first_name='Test',
+            last_name='User',
+            password='testpass',
+        )
+
+        response = self.client.get('/api/users/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]['display_name'], 'Test User')
+
+
+class ApiRootTests(APITestCase):
+    def test_api_root_lists_all_resource_endpoints(self):
+        response = self.client.get('/api/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('users', response.json())
+        self.assertIn('teams', response.json())
+        self.assertIn('activities', response.json())
+        self.assertIn('workouts', response.json())
+        self.assertIn('leaderboard', response.json())
+
 class TeamTests(APITestCase):
     def test_team_api_includes_member_names_and_created_at(self):
         client = pymongo.MongoClient(settings.DATABASES['default']['CLIENT']['host'])
