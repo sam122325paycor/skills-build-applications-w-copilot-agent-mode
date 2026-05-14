@@ -60,6 +60,18 @@ const getSearchableText = (record, columns) =>
     .join(' ')
     .toLowerCase();
 
+const getDetailEntries = (record, columns) => {
+  const visibleEntries = columns
+    .filter((column) => record[column.key] !== undefined)
+    .map((column) => ({
+      key: column.key,
+      label: column.label,
+      value: getColumnValue(column, record),
+    }));
+
+  return { visibleEntries };
+};
+
 // columns prop: array of { key, label, render? }
 // If not provided, auto-discovers up to 6 columns from the data.
 const DataResourcePage = ({ title, resourcePath, columns: columnsProp }) => {
@@ -117,12 +129,24 @@ const DataResourcePage = ({ title, resourcePath, columns: columnsProp }) => {
     return records.filter((item) => getSearchableText(item, columns).includes(q));
   }, [records, query, columns]);
 
+  const modalDetails = useMemo(() => {
+    if (!selectedRecord) {
+      return { visibleEntries: [] };
+    }
+
+    return getDetailEntries(selectedRecord, columns);
+  }, [selectedRecord, columns]);
+
   useEffect(() => {
     if (!selectedRecord) {
       triggerRef.current?.focus();
       return undefined;
     }
 
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
     closeButtonRef.current?.focus();
 
     const handleKeyDown = (event) => {
@@ -160,6 +184,8 @@ const DataResourcePage = ({ title, resourcePath, columns: columnsProp }) => {
     document.addEventListener('keydown', handleKeyDown);
 
     return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [selectedRecord]);
@@ -266,7 +292,7 @@ const DataResourcePage = ({ title, resourcePath, columns: columnsProp }) => {
             role="presentation"
             onClick={() => setSelectedRecord(null)}
           >
-            <div className="modal-dialog modal-lg modal-dialog-centered" role="document">
+            <div className="modal-dialog modal-xl modal-dialog-centered resource-details-dialog" role="document">
               <div
                 className="modal-content resource-details-modal"
                 role="dialog"
@@ -287,12 +313,25 @@ const DataResourcePage = ({ title, resourcePath, columns: columnsProp }) => {
                   />
                 </div>
                 <div className="modal-body">
-                  <pre className="mb-0 bg-light p-3 rounded small text-wrap">
-                    {JSON.stringify(selectedRecord, null, 2)}
-                  </pre>
+                  <div className="details-panel">
+                    <div className="details-grid" role="list">
+                      {selectedRecord.id !== undefined && (
+                        <div className="detail-item detail-item-accent" role="listitem">
+                          <span className="detail-label">Record ID</span>
+                          <span className="detail-value">{selectedRecord.id}</span>
+                        </div>
+                      )}
+                      {modalDetails.visibleEntries.map((entry) => (
+                        <div className="detail-item" key={entry.key} role="listitem">
+                          <span className="detail-label">{entry.label}</span>
+                          <span className="detail-value">{entry.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setSelectedRecord(null)}>
+                  <button type="button" className="btn btn-primary modal-close-action" onClick={() => setSelectedRecord(null)}>
                     Close
                   </button>
                 </div>
