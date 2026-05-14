@@ -1,0 +1,49 @@
+:root {
+  --octofit-primary: #0a4f8a;
+  --octofit-accent: #22a06b;
+  --octofit-ink: #13293d;
+}
+
+.app-shell {
+  background: radial-gradient(circle at top right, #d8f4e8 0%, #f4f9ff 45%, #ffffff 100%);
+  color: var(--octofit-ink);
+}
+
+.app-navbar {
+  background: linear-gradient(120deg, #0d3b66 0%, #0a4f8a 55%, #146c94 100%);
+}
+
+.app-navbar .navbar-brand {
+  letter-spacing: 0.03em;
+}
+
+.app-navbar .nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.app-navbar .nav-link:hover,
+.app-navbar .nav-link:focus {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.app-navbar .nav-link.active {
+  color: #0d3b66;
+  background-color: #ffffff;
+  font-weight: 600;
+}
+
+.page-card {
+  border-radius: 1rem;
+}
+
+.table td,
+.table th {
+  vertical-align: middle;
+}
+
+.modal pre {
+  max-height: 50vh;
+  overflow: auto;
+}

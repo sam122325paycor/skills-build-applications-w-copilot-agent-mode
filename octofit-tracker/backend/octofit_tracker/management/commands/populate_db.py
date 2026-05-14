@@ -1,78 +1,125 @@
+import datetime
 from django.core.management.base import BaseCommand
-from django.contrib.auth import get_user_model
-from djongo import models
+from django.conf import settings
+from django.contrib.auth.hashers import make_password
+import pymongo
 
-# Define models for test data population
-class Team(models.Model):
-    name = models.CharField(max_length=100, unique=True)
-    class Meta:
-        app_label = 'octofit_tracker'
+from octofit_tracker.models import Activity, Leaderboard, Team, User, Workout
 
-class Activity(models.Model):
-    user = models.CharField(max_length=100)
-    type = models.CharField(max_length=100)
-    duration = models.IntegerField()
-    team = models.CharField(max_length=100)
-    class Meta:
-        app_label = 'octofit_tracker'
-
-class Leaderboard(models.Model):
-    user = models.CharField(max_length=100)
-    team = models.CharField(max_length=100)
-    points = models.IntegerField()
-    class Meta:
-        app_label = 'octofit_tracker'
-
-class Workout(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField()
-    suggested_for = models.CharField(max_length=100)
-    class Meta:
-        app_label = 'octofit_tracker'
-
-User = get_user_model()
 
 class Command(BaseCommand):
     help = 'Populate the octofit_db database with test data'
 
     def handle(self, *args, **kwargs):
-        # Delete existing data
-        Team.objects.all().delete()
-        Activity.objects.all().delete()
-        Leaderboard.objects.all().delete()
-        Workout.objects.all().delete()
-        User.objects.all().delete()
+        client = pymongo.MongoClient(settings.DATABASES['default']['CLIENT']['host'])
+        db = client[settings.DATABASES['default']['NAME']]
 
-        # Create teams
-        marvel = Team.objects.create(name='Marvel')
-        dc = Team.objects.create(name='DC')
+        for collection_name in [
+            'octofit_tracker_workout_suggested_for',
+            'octofit_tracker_workout',
+            'octofit_tracker_leaderboard',
+            'octofit_tracker_activity',
+            'octofit_tracker_team',
+            'octofit_tracker_user',
+        ]:
+            db[collection_name].drop()
 
-        # Create users
-        users = [
-            {'username': 'ironman', 'email': 'ironman@marvel.com', 'team': 'Marvel'},
-            {'username': 'spiderman', 'email': 'spiderman@marvel.com', 'team': 'Marvel'},
-            {'username': 'batman', 'email': 'batman@dc.com', 'team': 'DC'},
-            {'username': 'superman', 'email': 'superman@dc.com', 'team': 'DC'},
-        ]
-        user_objs = []
-        for u in users:
-            user = User.objects.create_user(username=u['username'], email=u['email'], password='password123')
-            user_objs.append(user)
+        client.close()
+        self.stdout.write('Cleared all collections.')
 
-        # Create activities
-        Activity.objects.create(user='ironman', type='Running', duration=30, team='Marvel')
-        Activity.objects.create(user='spiderman', type='Cycling', duration=45, team='Marvel')
-        Activity.objects.create(user='batman', type='Swimming', duration=60, team='DC')
-        Activity.objects.create(user='superman', type='Yoga', duration=40, team='DC')
+        today = datetime.date.today()
 
-        # Create leaderboard
-        Leaderboard.objects.create(user='ironman', team='Marvel', points=100)
-        Leaderboard.objects.create(user='spiderman', team='Marvel', points=80)
-        Leaderboard.objects.create(user='batman', team='DC', points=90)
-        Leaderboard.objects.create(user='superman', team='DC', points=95)
+        client = pymongo.MongoClient(settings.DATABASES['default']['CLIENT']['host'])
+        db = client[settings.DATABASES['default']['NAME']]
+        password_hash = make_password('password123')
+        now = datetime.datetime.utcnow()
 
-        # Create workouts
-        Workout.objects.create(name='Hero HIIT', description='High intensity interval training for heroes.', suggested_for='Marvel')
-        Workout.objects.create(name='Kryptonian Cardio', description='Cardio workout for super strength.', suggested_for='DC')
+        db['octofit_tracker_user'].insert_many([
+            {
+                'id': 1,
+                'password': password_hash,
+                'last_login': None,
+                'is_superuser': False,
+                'username': 'ironman',
+                'first_name': 'Tony',
+                'last_name': 'Stark',
+                'email': 'ironman@marvel.com',
+                'is_staff': False,
+                'is_active': True,
+                'date_joined': now,
+            },
+            {
+                'id': 2,
+                'password': password_hash,
+                'last_login': None,
+                'is_superuser': False,
+                'username': 'spiderman',
+                'first_name': 'Peter',
+                'last_name': 'Parker',
+                'email': 'spiderman@marvel.com',
+                'is_staff': False,
+                'is_active': True,
+                'date_joined': now,
+            },
+            {
+                'id': 3,
+                'password': password_hash,
+                'last_login': None,
+                'is_superuser': False,
+                'username': 'batman',
+                'first_name': 'Bruce',
+                'last_name': 'Wayne',
+                'email': 'batman@dc.com',
+                'is_staff': False,
+                'is_active': True,
+                'date_joined': now,
+            },
+            {
+                'id': 4,
+                'password': password_hash,
+                'last_login': None,
+                'is_superuser': False,
+                'username': 'superman',
+                'first_name': 'Clark',
+                'last_name': 'Kent',
+                'email': 'superman@dc.com',
+                'is_staff': False,
+                'is_active': True,
+                'date_joined': now,
+            },
+        ])
 
-        self.stdout.write(self.style.SUCCESS('octofit_db database populated with test data.'))
+        Team.objects.create(id=1, name='Marvel')
+        Team.objects.create(id=2, name='DC')
+
+        db['octofit_tracker_team'].update_one({'name': 'Marvel'}, {'$set': {'members_id': [1, 2]}})
+        db['octofit_tracker_team'].update_one({'name': 'DC'}, {'$set': {'members_id': [3, 4]}})
+
+        db['octofit_tracker_activity'].insert_many([
+            {'id': 1, 'user_id': 1, 'activity_type': 'Running', 'duration': 30, 'calories_burned': 300.0, 'date': str(today - datetime.timedelta(days=3))},
+            {'id': 2, 'user_id': 2, 'activity_type': 'Cycling', 'duration': 45, 'calories_burned': 450.0, 'date': str(today - datetime.timedelta(days=2))},
+            {'id': 3, 'user_id': 3, 'activity_type': 'Swimming', 'duration': 60, 'calories_burned': 600.0, 'date': str(today - datetime.timedelta(days=1))},
+            {'id': 4, 'user_id': 4, 'activity_type': 'Yoga', 'duration': 40, 'calories_burned': 200.0, 'date': str(today)},
+        ])
+
+        db['octofit_tracker_leaderboard'].insert_many([
+            {'id': 1, 'user_id': 1, 'score': 100, 'rank': 1},
+            {'id': 2, 'user_id': 4, 'score': 95, 'rank': 2},
+            {'id': 3, 'user_id': 3, 'score': 90, 'rank': 3},
+            {'id': 4, 'user_id': 2, 'score': 80, 'rank': 4},
+        ])
+
+        db['octofit_tracker_workout'].insert_many([
+            {'id': 1, 'name': 'Hero HIIT', 'description': 'High intensity interval training for heroes.'},
+            {'id': 2, 'name': 'Kryptonian Cardio', 'description': 'Cardio workout for super strength.'},
+        ])
+        db['octofit_tracker_workout_suggested_for'].insert_many([
+            {'id': 1, 'workout_id': 1, 'user_id': 1},
+            {'id': 2, 'workout_id': 1, 'user_id': 2},
+            {'id': 3, 'workout_id': 2, 'user_id': 3},
+            {'id': 4, 'workout_id': 2, 'user_id': 4},
+        ])
+
+        client.close()
+
+        self.stdout.write(self.style.SUCCESS('octofit_db populated with test data.'))
